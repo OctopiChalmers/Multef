@@ -5,9 +5,6 @@ module Faceted
 where
 import Control.Monad
 
-import Lattice
-import ProgramCounter
-
 data Faceted l a where
   Raw   :: a -> Faceted l a
   Facet :: l -> Faceted l a -> Faceted l a -> Faceted l a

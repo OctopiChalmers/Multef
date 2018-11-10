@@ -29,7 +29,8 @@ library
     Lattice
   other-modules:
     ProgramCounter,
-    Faceted
+    Faceted,
+    FIOInternals
   hs-source-dirs:
       src
   build-depends:

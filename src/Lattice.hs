@@ -1,5 +1,5 @@
 module Lattice
-  (Lattice(..)
+  ( Lattice(..)
   )
 where
 

@@ -3,9 +3,12 @@ module ProgramCounter
   , emptyView
   , extendPositive
   , extendNegative
+  , pcF
   )
 where
+
 import Lattice
+import Faceted
 
 data Branch l = Positive l
               | Negative l
@@ -24,3 +27,8 @@ candidate (PC pc) = foldr lub bot [ l | Positive l <- pc ]
 
 emptyView :: Lattice l => PC l -> Bool
 emptyView pc@(PC brs) = all (\l -> not $ canFlowTo l (candidate pc)) [ l | Negative l <- brs ]
+
+pcF :: PC l -> Faceted l a -> Faceted l a -> Faceted l a
+pcF (PC [])                      priv _   = priv
+pcF (PC (Positive k : branches)) priv pub = Facet k (pcF (PC branches) priv pub) pub
+pcF (PC (Negative k : branches)) priv pub = Facet k pub (pcF (PC branches) priv pub)
