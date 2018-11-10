@@ -1,0 +1,26 @@
+{-# LANGUAGE GADTs #-}
+module Faceted
+  ( Faceted(..)
+  )
+where
+import Control.Monad
+
+import Lattice
+import ProgramCounter
+
+data Faceted l a where
+  Raw   :: a -> Faceted l a
+  Facet :: l -> Faceted l a -> Faceted l a -> Faceted l a
+
+instance Monad (Faceted l) where
+  return = Raw
+
+  Raw a         >>= k = k a
+  Facet l fl fr >>= k = Facet l (fl >>= k) (fr >>= k)
+
+instance Applicative (Faceted l) where
+  pure  = return
+  (<*>) = ap
+
+instance Functor (Faceted l) where
+  fmap = liftM
