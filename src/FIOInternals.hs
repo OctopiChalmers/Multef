@@ -36,32 +36,44 @@ data FIO l a where
               -> (FIORef l a -> FIO l b)
               -> FIO l b
 
-fsme :: Lattice l => FIO l a -> PC l -> Int -> IO a
-fsme fio pc waitTime = fst <$> run fio pc
+data FIOExecutionObject a =
+  FIOExec { result            :: a
+          , activeThreadCount :: IORef Int }
+
+fsme :: Lattice l => FIO l a -> PC l -> Int -> IO (FIOExecutionObject a)
+fsme fio pc waitTime = do
+  activeThreads <- newIORef 1
+  (res, _)      <- run activeThreads fio pc
+  atomicModifyIORef activeThreads $ \x -> (x-1, ())
+  return $ FIOExec { result            = res
+                   , activeThreadCount = activeThreads }
   where
-    run :: Lattice l => FIO l a -> PC l -> IO (a, PC l)
-    run fio pc = case fio of
+    run :: Lattice l => IORef Int -> FIO l a -> PC l -> IO (a, PC l)
+    run act fio pc = case fio of
       Done a -> return (a, pc)
 
       Control (Raw fioa) cont -> do
-        (a, _) <- run fioa pc
-        run (cont (Raw a)) pc
+        (a, _) <- run act fioa pc
+        run act (cont (Raw a)) pc
 
       Control (Facet l prv pub) cont
-        | emptyView (extendPositive pc l) -> run (Control pub cont) (extendPositive pc l)
-        | emptyView (extendNegative pc l) -> run (Control prv cont) (extendNegative pc l)
+        | emptyView (extendPositive pc l) -> run act (Control pub cont) (extendPositive pc l)
+        | emptyView (extendNegative pc l) -> run act (Control prv cont) (extendNegative pc l)
         | otherwise -> do
             privResultMVar <- newEmptyMVar
             privCont       <- newEmptyMVar
+            atomicModifyIORef act $ \x -> (x + 1, ())
             forkIO $ do
               -- Run the private computation
-              (result, pc') <- run (Control prv Done) (extendPositive pc l) 
+              (result, pc') <- run act (Control prv Done) (extendPositive pc l) 
               -- Communicate the result to the other thread
               putMVar privResultMVar result 
               -- Check if we should switch to SME
               switchSME <- readMVar privCont 
               -- If we switch, continue by running the continuation
-              when switchSME . void $ run (cont result) pc'
+              when switchSME . void $ run act (cont result) pc'
+              -- Clean up after ourselves
+              atomicModifyIORef act $ \x -> (x - 1, ())
 
             -- Check if we have a result yet
             onTime <- timeout waitTime (readMVar privResultMVar)
@@ -69,23 +81,23 @@ fsme fio pc waitTime = fst <$> run fio pc
             case onTime of
               Just privResult -> do
                 putMVar privCont False
-                (pubResult, _) <- run (Control pub Done) (extendNegative pc l)
-                run (cont (Facet l privResult pubResult)) pc
+                (pubResult, _) <- run act (Control pub Done) (extendNegative pc l)
+                run act (cont (Facet l privResult pubResult)) pc
 
               Nothing -> do
                 -- Switching to SME
                 putMVar privCont True
-                run (Control pub cont) (extendNegative pc l)
+                run act (Control pub cont) (extendNegative pc l)
 
       ReadFIORef (FIORef ref) cont -> do
         fac <- readIORef ref
-        run (cont fac) pc
+        run act (cont fac) pc
 
       WriteFIORef (FIORef ref) fac cont -> do
         atomicModifyIORef' ref $
           \old -> (pcF pc fac old, ())
-        run cont pc
+        run act cont pc
 
       NewFIORef fac cont -> do
         ref <- FIORef <$> newIORef fac
-        run (cont ref) pc
+        run act (cont ref) pc
