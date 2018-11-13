@@ -1,7 +1,13 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Lattice.Class where
+
+import GHC.Exts
 
 class Principal l where
   singleton :: a -> l a
+
+instance Principal l => IsString (l String) where
+  fromString = singleton
 
 class Lattice l where
   lub, glb  :: l -> l -> l
