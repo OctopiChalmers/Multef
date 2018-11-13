@@ -2,7 +2,7 @@ module Lattice.Powerset where
 
 import qualified Data.Set as S
 
-import Lattice
+import Lattice.Class
 
 data Powerset a = Top
                 | Power (S.Set a)

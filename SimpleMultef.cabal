@@ -28,8 +28,11 @@ library
   exposed-modules:
     Multef,
     Lattice,
+    Lattice.Class,
     Lattice.HighLow,
-    Lattice.Powerset
+    Lattice.Powerset,
+    Lattice.CNF,
+    Lattice.DCLabels
   other-modules:
     ProgramCounter,
     Faceted,

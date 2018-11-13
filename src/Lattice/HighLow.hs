@@ -1,6 +1,6 @@
 module Lattice.HighLow where
 
-import Lattice
+import Lattice.Class
 
 data HighLow = H | L deriving (Ord, Eq, Show)
 
