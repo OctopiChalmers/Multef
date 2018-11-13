@@ -19,6 +19,8 @@ import Lattice
 import ProgramCounter
 import Faceted
 
+-- | A reference holding a faceted value
+-- with labels drawn from `l`
 newtype FIORef l a = FIORef (IORef (Faceted l a))
 
 data FIO l a where
@@ -42,10 +44,13 @@ data FIO l a where
               -> (FIORef l a -> FIO l b)
               -> FIO l b
 
+-- | What is returned when executing an FIO program
 data FIOExecutionObject a =
   FIOExec { result            :: a
           , activeThreadCount :: IORef Int }
 
+-- | Execute an `FIO` program under FSME. The `waitTime` parameter
+--   specifies the timeout
 fsme :: Lattice l => FIO l a -> PC l -> Int -> IO (FIOExecutionObject a)
 fsme fio pc waitTime = do
   activeThreads <- newIORef 1
@@ -66,8 +71,10 @@ fsme fio pc waitTime = do
         | emptyView (extendPositive pc l) -> run act (Control pub cont) (extendPositive pc l)
         | emptyView (extendNegative pc l) -> run act (Control prv cont) (extendNegative pc l)
         | otherwise -> do
+            -- For communication between the two threads
             privResultMVar <- newEmptyMVar
             privCont       <- newEmptyMVar
+            -- We are spawning a new thread
             atomicModifyIORef act $ \x -> (x + 1, ())
             forkIO $ do
               -- Run the private computation
@@ -85,13 +92,14 @@ fsme fio pc waitTime = do
             onTime <- timeout waitTime (readMVar privResultMVar)
 
             case onTime of
+              -- Continue under MF
               Just privResult -> do
                 putMVar privCont False
                 (pubResult, _) <- run act (Control pub Done) (extendNegative pc l)
                 run act (cont (Facet l privResult pubResult)) pc
 
+              -- Switching to SME-like semantics
               Nothing -> do
-                -- Switching to SME
                 putMVar privCont True
                 run act (Control pub cont) (extendNegative pc l)
 
@@ -100,8 +108,9 @@ fsme fio pc waitTime = do
         run act (cont fac) pc
 
       WriteFIORef (FIORef ref) fac cont -> do
-        atomicModifyIORef' ref $
-          \old -> (pcF pc fac old, ())
+        -- `pcF pc` means we include information from the
+        -- existing context in the reference cell
+        atomicModifyIORef' ref $ \old -> (pcF pc fac old, ())
         run act cont pc
 
       NewFIORef fac cont -> do
@@ -129,14 +138,18 @@ instance Applicative (FIO l) where
 instance Functor (FIO l) where
   fmap = liftM
 
+-- | Execute secret-dependent control flow
 control :: Faceted l (FIO l a) -> FIO l (Faceted l a)
 control fac = Control fac Done
 
+-- | Read a reference
 readFIORef :: FIORef l a -> FIO l (Faceted l a)
 readFIORef ref = ReadFIORef ref Done
 
+-- | Write to a reference
 writeFIORef :: FIORef l a -> Faceted l a -> FIO l ()
 writeFIORef ref fac = WriteFIORef ref fac (Done ())
 
+-- | Creat a new reference with an initial value
 newFIORef :: Faceted l a -> FIO l (FIORef l a)
 newFIORef fac = NewFIORef fac Done

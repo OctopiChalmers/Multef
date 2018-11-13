@@ -4,6 +4,8 @@ import qualified Data.Set as S
 
 import Lattice.Class
 
+-- | Formulas of principals in conjunctive normal form.
+-- This is the basis of a DC-label
 data CNF a = CNF (S.Set (S.Set a))
 
 instance Ord a => Lattice (CNF a) where

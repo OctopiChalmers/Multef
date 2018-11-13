@@ -3,6 +3,7 @@ module Lattice.DCLabels where
 import Lattice.Class
 import Lattice.CNF
 
+-- | A DC-label is a CNF and a dual of a CNF
 newtype DCLabels a = DC (CNF a, Dual (CNF a))
 
 instance Principal DCLabels where

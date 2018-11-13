@@ -1,3 +1,4 @@
+-- | This module implements program counters
 module ProgramCounter
   ( PC
   , emptyView
@@ -7,7 +8,7 @@ module ProgramCounter
   )
 where
 
-import Lattice
+import Lattice.Class
 import Faceted
 
 data Branch l = Positive l
@@ -16,18 +17,24 @@ data Branch l = Positive l
 
 newtype PC l = PC { branches :: [Branch l] }
 
+-- | Extend the PC with a positive branch
 extendPositive :: PC l -> l -> PC l
 extendPositive (PC pc) l = PC (Positive l : pc)
 
+-- | Extend the PC with a negative branch
 extendNegative :: PC l -> l -> PC l
 extendNegative (PC pc) l = PC (Negative l : pc)
 
+-- | Compute the candidate label
 candidate :: Lattice l => PC l -> l
 candidate (PC pc) = foldr lub bot [ l | Positive l <- pc ]
 
+-- | Check if the view associated to a PC is empty
 emptyView :: Lattice l => PC l -> Bool
 emptyView pc@(PC brs) = all (\l -> not $ canFlowTo l (candidate pc)) [ l | Negative l <- brs ]
 
+-- | Create a faceted value which behaves as `priv` to an observer
+-- in the view of the PC and as `pub` to others.
 pcF :: PC l -> Faceted l a -> Faceted l a -> Faceted l a
 pcF (PC [])                      priv _   = priv
 pcF (PC (Positive k : branches)) priv pub = Facet k (pcF (PC branches) priv pub) pub
