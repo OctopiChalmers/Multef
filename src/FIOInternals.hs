@@ -1,6 +1,12 @@
 {-# LANGUAGE GADTs #-}
-module FIOInternals
-  ( FIO(..)
+module FIOInternals 
+  ( FIO
+  , FIOExecutionObject(..)
+  , fsme
+  , control
+  , readFIORef
+  , writeFIORef
+  , newFIORef
   )
 where
 
@@ -101,3 +107,36 @@ fsme fio pc waitTime = do
       NewFIORef fac cont -> do
         ref <- FIORef <$> newIORef fac
         run act (cont ref) pc
+
+instance Monad (FIO l) where
+  return    = Done
+
+  fio >>= k = case fio of
+    Done a                  -> k a
+
+    Control fac cont        -> Control fac    (cont >=> k)
+
+    ReadFIORef ref cont     -> ReadFIORef ref (cont >=> k) 
+
+    WriteFIORef ref fac fio -> WriteFIORef ref fac (fio >>= k)
+
+    NewFIORef fac cont      -> NewFIORef fac (cont >=> k)
+
+instance Applicative (FIO l) where
+  pure  = return
+  (<*>) = ap
+
+instance Functor (FIO l) where
+  fmap = liftM
+
+control :: Faceted l (FIO l a) -> FIO l (Faceted l a)
+control fac = Control fac Done
+
+readFIORef :: FIORef l a -> FIO l (Faceted l a)
+readFIORef ref = ReadFIORef ref Done
+
+writeFIORef :: FIORef l a -> Faceted l a -> FIO l ()
+writeFIORef ref fac = WriteFIORef ref fac (Done ())
+
+newFIORef :: Faceted l a -> FIO l (FIORef l a)
+newFIORef fac = NewFIORef fac Done

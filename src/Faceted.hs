@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 module Faceted
   ( Faceted(..)
+  , facet
   )
 where
 import Control.Monad
@@ -8,6 +9,9 @@ import Control.Monad
 data Faceted l a where
   Raw   :: a -> Faceted l a
   Facet :: l -> Faceted l a -> Faceted l a -> Faceted l a
+
+facet :: l -> Faceted l a -> Faceted l a -> Faceted l a
+facet = Facet
 
 instance Monad (Faceted l) where
   return = Raw
