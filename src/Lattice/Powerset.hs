@@ -8,8 +8,8 @@ data Powerset a = Top
                 | Power (S.Set a)
                 deriving (Eq, Show)
 
-singleton :: a -> Powerset a
-singleton = Power . S.singleton
+instance Principal Powerset where
+  singleton = Power . S.singleton
 
 instance Ord a => Lattice (Powerset a) where
   Top      `lub` _        = Top

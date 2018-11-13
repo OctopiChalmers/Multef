@@ -1,5 +1,8 @@
 module Lattice.Class where
 
+class Principal l where
+  singleton :: a -> l a
+
 class Lattice l where
   lub, glb  :: l -> l -> l
   bot, top  :: l
