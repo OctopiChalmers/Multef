@@ -8,3 +8,5 @@ where
 import Lattice.Class
 import Lattice.Powerset
 import Lattice.HighLow
+import Lattice.CNF
+import Lattice.DCLabels
