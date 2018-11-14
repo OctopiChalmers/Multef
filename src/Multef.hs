@@ -1,9 +1,7 @@
 module Multef 
-  ( module FIOInternals
-  , module Lattice
-  , Faceted
-  , facet )
+  ( module FIO
+  , module Syntax
+  )
 where
-import FIOInternals
-import Lattice
-import Faceted
+import FIO
+import Syntax

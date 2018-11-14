@@ -27,6 +27,7 @@ source-repository head
 library
   exposed-modules:
     Multef,
+    Multef.Trusted,
     Lattice,
     Lattice.Class,
     Lattice.HighLow,
@@ -36,7 +37,9 @@ library
   other-modules:
     ProgramCounter,
     Faceted,
-    FIOInternals
+    FIOInternals,
+    FIO,
+    Syntax
   hs-source-dirs:
       src
   build-depends:

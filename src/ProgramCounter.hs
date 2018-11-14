@@ -1,6 +1,7 @@
 -- | This module implements program counters
 module ProgramCounter
   ( PC
+  , emptyPC
   , emptyView
   , extendPositive
   , extendNegative
@@ -17,6 +18,10 @@ data Branch l = Positive l
 
 newtype PC l = PC { branches :: [Branch l] }
 
+-- | The empty PC
+emptyPC :: PC l
+emptyPC = PC []
+
 -- | Extend the PC with a positive branch
 extendPositive :: PC l -> l -> PC l
 extendPositive (PC pc) l = PC (Positive l : pc)
@@ -31,7 +36,7 @@ candidate (PC pc) = foldr lub bot [ l | Positive l <- pc ]
 
 -- | Check if the view associated to a PC is empty
 emptyView :: Lattice l => PC l -> Bool
-emptyView pc@(PC brs) = all (\l -> not $ canFlowTo l (candidate pc)) [ l | Negative l <- brs ]
+emptyView pc@(PC brs) = not $ all (\l -> not $ canFlowTo l (candidate pc)) [ l | Negative l <- brs ]
 
 -- | Create a faceted value which behaves as `priv` to an observer
 -- in the view of the PC and as `pub` to others.

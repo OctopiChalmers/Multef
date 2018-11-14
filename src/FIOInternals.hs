@@ -51,10 +51,10 @@ data FIOExecutionObject a =
 
 -- | Execute an `FIO` program under FSME. The `waitTime` parameter
 --   specifies the timeout
-fsme :: Lattice l => FIO l a -> PC l -> Int -> IO (FIOExecutionObject a)
-fsme fio pc waitTime = do
+fsme :: Lattice l => FIO l a -> Maybe Int -> IO (FIOExecutionObject a)
+fsme fio waitTime = do
   activeThreads <- newIORef 1
-  (res, _)      <- run activeThreads fio pc
+  (res, _)      <- run activeThreads fio emptyPC
   atomicModifyIORef activeThreads $ \x -> (x-1, ())
   return $ FIOExec { result            = res
                    , activeThreadCount = activeThreads }
@@ -89,7 +89,7 @@ fsme fio pc waitTime = do
               atomicModifyIORef act $ \x -> (x - 1, ())
 
             -- Check if we have a result yet
-            onTime <- timeout waitTime (readMVar privResultMVar)
+            onTime <- maybe (Just <$>) timeout waitTime (readMVar privResultMVar)
 
             case onTime of
               -- Continue under MF
