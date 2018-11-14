@@ -1,4 +1,3 @@
-{-# LANGUAGE GADTs #-}
 module Faceted
   ( Faceted(..)
   , facet
@@ -7,9 +6,8 @@ where
 import Control.Monad
 
 -- | Representation of Faceted Values
-data Faceted l a where
-  Raw   :: a -> Faceted l a
-  Facet :: l -> Faceted l a -> Faceted l a -> Faceted l a
+data Faceted l a = Raw a
+                 | Facet l (Faceted l a) (Faceted l a)
 
 -- | Create a Faceted Value
 facet :: l -> Faceted l a -> Faceted l a -> Faceted l a
