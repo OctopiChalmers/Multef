@@ -2,12 +2,14 @@ module AustinAndFlanagan where
 
 import Multef
 
--- | An example from Austing and Flanagan
-austinAndFlanagan :: Lattice l => Faceted l Bool -> FIO l (Faceted l Bool)
-austinAndFlanagan x = do
+-- | Attempt to leak "through" the PC
+leak :: Lattice l => Faceted l Bool -> FIO l (Faceted l Bool)
+leak x = do
   y <- newFIORef (pure False)
   z <- newFIORef (pure False)
-  when' x $ writeFIORef y (pure True)
+  when' x $ do
+    writeFIORef y (pure True)
   yv <- readFIORef y
-  when' yv $ writeFIORef z (pure True)
+  when' yv $ do
+    writeFIORef z (pure True)
   readFIORef z

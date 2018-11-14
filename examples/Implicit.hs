@@ -1,10 +1,11 @@
-module Explicit where
+module Implicit where
 
 import Multef
 
--- | Attempt to leak directly
+-- | Attempt to leak by control-flow
 leak :: Lattice l => Faceted l Bool -> FIO l (Faceted l Bool)
 leak x = do
   y <- newFIORef (pure False)
-  writeFIORef y x
+  when' x $ do
+    writeFIORef y x
   readFIORef y
