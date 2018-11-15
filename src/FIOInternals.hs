@@ -24,6 +24,8 @@ import Faceted
 -- with labels drawn from `l`
 newtype FIORef l a = FIORef (IORef (Faceted l a))
 
+-- | An FIO computation, this is the meat of the
+-- Multef framework.
 data FIO l a where
   Done        :: a
               -> FIO l a
@@ -57,15 +59,18 @@ data FIOExecutionObject l a =
   FIOExec { result  :: IORef (Faceted l (Maybe a))
           , runtime :: FIORuntimeObject }
 
+-- | Fork a new thread
 forkThread :: FIORuntimeObject -> IO ()
 forkThread runtime = do
   atomicModifyIORef' (activeThreadCount runtime) $ \x -> (x + 1, ())
   atomicModifyIORef' (totalForkCount runtime) $ \x -> (x + 1, ())
 
+-- | Kill a thread
 killThread :: FIORuntimeObject -> IO ()
 killThread runtime = do
   atomicModifyIORef (activeThreadCount runtime) $ \x -> (x - 1, ())
 
+-- | Create a new runtime object
 createRuntimeObject :: IO FIORuntimeObject
 createRuntimeObject = do
   acttc <- newIORef 1
@@ -181,6 +186,6 @@ readFIORef ref = ReadFIORef ref Done
 writeFIORef :: FIORef l a -> Faceted l a -> FIO l ()
 writeFIORef ref fac = WriteFIORef ref fac (Done ())
 
--- | Creat a new reference with an initial value
+-- | Create a new reference with an initial value
 newFIORef :: Faceted l a -> FIO l (FIORef l a)
 newFIORef fac = NewFIORef fac Done

@@ -25,4 +25,13 @@ printResult :: (Show l, Show a) => FIOExecutionObject l a -> IO ()
 printResult obj = do
   res <- readIORef (result obj) 
   printRuntime (runtime obj)
-  putStrLn $ show res
+  putStrLn $ show (unMaybeFaceted res)
+  where
+    unMaybeFaceted :: Faceted l (Maybe a) -> Maybe (Faceted l a)
+    unMaybeFaceted (Raw a) = Raw <$> a
+    unMaybeFaceted (Facet l fl fr) =
+      case unMaybeFaceted fl of
+        Just fl -> case unMaybeFaceted fr of
+          Just fr -> Just (Facet l fl fr)
+          Nothing -> Just fl
+        Nothing -> unMaybeFaceted fr
