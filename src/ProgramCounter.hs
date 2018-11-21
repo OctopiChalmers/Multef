@@ -1,6 +1,7 @@
 -- | This module implements program counters
 module ProgramCounter
-  ( PC
+  ( PC (..)
+  , Branch (..)
   , emptyPC
   , emptyView
   , extendPositive
@@ -32,11 +33,24 @@ extendNegative (PC pc) l = PC (Negative l : pc)
 
 -- | Compute the candidate label
 candidate :: Lattice l => PC l -> l
-candidate (PC pc) = foldr lub bot [ l | Positive l <- pc ]
+candidate pc = foldr lub bot [ l | Positive l <- branches pc ]
+
+-- | The positive branches
+positives :: PC l -> [l]
+positives pc = [ l | Positive l <- branches pc ]
+
+-- | The negative branches
+negatives :: PC l -> [l]
+negatives pc = [ l | Negative l <- branches pc ]
+
+-- | Check if a label is in the view of a pc
+inViews :: Lattice l => l -> PC l -> Bool
+inViews l pc =  all (`canFlowTo` l) (positives pc)
+             && all (not . (`canFlowTo` l)) (negatives pc)
 
 -- | Check if the view associated to a PC is empty
 emptyView :: Lattice l => PC l -> Bool
-emptyView pc@(PC brs) = not $ all (\l -> not $ canFlowTo l (candidate pc)) [ l | Negative l <- brs ]
+emptyView pc = candidate pc `inViews` pc
 
 -- | Create a faceted value which behaves as `priv` to an observer
 -- in the view of the PC and as `pub` to others.

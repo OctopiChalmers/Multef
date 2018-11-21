@@ -1,6 +1,9 @@
 {-# LANGUAGE GADTs #-}
 module FIOInternals 
   ( FIO
+  , FIORef
+  , FIChan 
+  , FOChan
   , FIOExecutionObject(..)
   , FIORuntimeObject(..)
   , fsme
@@ -8,10 +11,13 @@ module FIOInternals
   , readFIORef
   , writeFIORef
   , newFIORef
+  , readFIChan
+  , writeFOChan
   )
 where
 
 import Data.IORef
+import Data.List
 import Control.Monad
 import Control.Concurrent hiding (killThread)
 import Control.Concurrent.Chan
@@ -96,15 +102,35 @@ createRuntimeObject = do
   maxtc <- newIORef 1
   return $ FIORuntime acttc maxtc
 
--- TODO: Figure out the least-bad way of doing something like this
-facGetDup :: Lattice l => PC l -> Faceted l (Chan (Faceted l a)) -> IO (Faceted l a, Faceted l (Chan (Faceted l a)))
+-- TODO: Figure out a better way of implementing this
+-- * Figure out how to get fewer duplicated channels and threads running forever
+-- * Figure out how to express this without deleting specific labels from the PC
+facGetDup :: (Lattice l, Eq l) => PC l -> Faceted l (Chan (Faceted l a)) -> IO (Faceted l a, Faceted l (Chan (Faceted l a)))
 facGetDup pc Bot               = return (Bot, Bot)
-facGetDup pc (Raw ch)          = undefined
-facGetDup pc (Faceted l fl fr) = undefined
+-- Optimization
+facGetDup (PC []) (Raw ch)     = do
+  val <- readChan ch
+  return (val, Raw ch)
+facGetDup pc (Raw ch)     = do
+  lch <- newChan
+  rch <- newChan
+  -- Terrible solution, leads to threads leaking all over the place
+  forkIO . forever $ do
+    val <- readChan ch
+    writeChan lch val
+    writeChan rch val
+  val <- readChan lch
+  return (pcF pc val Bot, pcF pc (Raw lch) (Raw rch))
+facGetDup (PC pc) (Facet l fl fr) = do
+  (v0, p0) <- facGetDup (PC $ pc \\ [Positive l, Negative l]) fl
+  (v1, p1) <- facGetDup (PC $ pc \\ [Positive l, Negative l]) fr
+  let p0' = if Positive l `elem` pc then p0 else fl
+  let p1' = if Negative l `elem` pc then p1 else fr
+  return (facet l v0 v1, facet l p0' p1')
 
 -- | Execute an `FIO` program under FSME. The `waitTime` parameter
 --   specifies the timeout
-fsme :: Lattice l => FIO l a -> Maybe Int -> IO (FIOExecutionObject l a)
+fsme :: (Lattice l, Eq l) => FIO l a -> Maybe Int -> IO (FIOExecutionObject l a)
 fsme fio waitTime = do
   -- Keep track of the number of active threads
   runtimeObject <- createRuntimeObject
@@ -120,7 +146,7 @@ fsme fio waitTime = do
   return $ FIOExec { result  = resultRef
                    , runtime = runtimeObject }
   where
-    run :: Lattice l => FIORuntimeObject -> FIO l a -> PC l -> IO (a, PC l)
+    run :: (Lattice l, Eq l) => FIORuntimeObject -> FIO l a -> PC l -> IO (a, PC l)
     run runtime fio pc = case fio of
       Done a -> return (a, pc)
 
@@ -179,13 +205,17 @@ fsme fio waitTime = do
         ref <- FIORef <$> newIORef fac
         run runtime (cont ref) pc
 
-      -- TODO: Figure out the least bad way of implementing this
-      ReadFIChan ch cont -> undefined
+      ReadFIChan (FIChan chRef lock) cont -> do
+        val <- with lock $ do
+          fch <- readIORef chRef
+          (val, newfch) <- facGetDup pc fch
+          writeIORef chRef newfch
+          return val
+        run runtime (cont val) pc
 
       WriteFOChan (FOChan ch) val cont -> do
         writeChan ch (pcF pc val Bot)
         run runtime cont pc
-
 
 instance Monad (FIO l) where
   return    = Done
@@ -221,3 +251,11 @@ writeFIORef ref fac = WriteFIORef ref fac (Done ())
 -- | Create a new reference with an initial value
 newFIORef :: Faceted l a -> FIO l (FIORef l a)
 newFIORef fac = NewFIORef fac Done
+
+-- | Read an input channel
+readFIChan :: FIChan l a -> FIO l (Faceted l a)
+readFIChan fch = ReadFIChan fch Done
+
+-- | Write to an output channel
+writeFOChan :: FOChan l a -> Faceted l a -> FIO l ()
+writeFOChan fch fac = WriteFOChan fch fac (Done ())
