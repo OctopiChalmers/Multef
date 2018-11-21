@@ -7,6 +7,7 @@ module ProgramCounter
   , extendPositive
   , extendNegative
   , pcF
+  , inViews
   )
 where
 

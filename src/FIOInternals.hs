@@ -35,8 +35,8 @@ newtype FIORef l a = FIORef (IORef (Faceted l a))
 -- | An FIO input channel from which faceted values can be read
 data FIChan l a = FIChan (IORef (Faceted l (Chan (Faceted l a)))) Lock
 
--- | An FIO output channel on which we can write faceted values
-newtype FOChan l a = FOChan (Chan (Faceted l a))
+-- | An FIO output channel on which we can write an unfaceted value
+data FOChan l a = FOChan l (Chan a)
 
 -- | An FIO computation, this is the meat of the
 -- Multef framework.
@@ -66,7 +66,7 @@ data FIO l a where
               -> FIO l b
 
   WriteFOChan :: FOChan l a
-              -> Faceted l a
+              -> a
               -> FIO l b
               -> FIO l b
 
@@ -213,8 +213,9 @@ fsme fio waitTime = do
           return val
         run runtime (cont val) pc
 
-      WriteFOChan (FOChan ch) val cont -> do
-        writeChan ch (pcF pc val Bot)
+      WriteFOChan (FOChan l ch) a cont -> do
+        when (l `inViews` pc) $ do
+          writeChan ch a
         run runtime cont pc
 
 instance Monad (FIO l) where
@@ -227,7 +228,7 @@ instance Monad (FIO l) where
     WriteFIORef ref fac fio -> WriteFIORef ref fac (fio >>= k)
     NewFIORef fac cont      -> NewFIORef fac (cont >=> k)
     ReadFIChan fac cont     -> ReadFIChan fac (cont >=> k)
-    WriteFOChan fac val fio -> WriteFOChan fac val (fio >>= k)
+    WriteFOChan fac a fio   -> WriteFOChan fac a (fio >>= k)
 
 instance Applicative (FIO l) where
   pure  = return
@@ -257,5 +258,5 @@ readFIChan :: FIChan l a -> FIO l (Faceted l a)
 readFIChan fch = ReadFIChan fch Done
 
 -- | Write to an output channel
-writeFOChan :: FOChan l a -> Faceted l a -> FIO l ()
-writeFOChan fch fac = WriteFOChan fch fac (Done ())
+writeFOChan :: FOChan l a -> a -> FIO l ()
+writeFOChan fch a = WriteFOChan fch a (Done ())
