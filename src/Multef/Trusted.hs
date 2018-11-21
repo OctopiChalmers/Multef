@@ -2,6 +2,7 @@
 module Multef.Trusted 
   ( module Faceted
   , module FIOInternals
+  , module ProgramCounter
   , printResult
   )
 where
@@ -10,6 +11,7 @@ import Data.IORef
 
 import Faceted
 import FIOInternals
+import ProgramCounter
 
 instance (Show a, Show l) => Show (Faceted l a) where
   show (Raw v) = show v
