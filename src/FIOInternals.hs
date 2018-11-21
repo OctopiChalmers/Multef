@@ -2,8 +2,8 @@
 module FIOInternals 
   ( FIO
   , FIORef
-  , FIChan 
-  , FOChan
+  , FIChan (..)
+  , FOChan (..)
   , FIOExecutionObject(..)
   , FIORuntimeObject(..)
   , fsme

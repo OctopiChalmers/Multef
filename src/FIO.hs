@@ -1,6 +1,16 @@
 module FIO
   ( module Lattice
-  , module FIOInternals
+  , FIO
+  , FIORef
+  , FIChan
+  , FOChan
+  , fsme
+  , control
+  , readFIORef
+  , writeFIORef
+  , newFIORef
+  , readFIChan
+  , writeFOChan
   , Faceted
   , facet )
 where

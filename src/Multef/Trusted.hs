@@ -1,6 +1,7 @@
 -- | This module should _only_ be imported by trusted code
 module Multef.Trusted 
   ( module Faceted
+  , module FIOInternals
   , printResult
   )
 where
