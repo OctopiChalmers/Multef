@@ -6,6 +6,12 @@ import Lattice.CNF
 -- | A DC-label is a CNF and a dual of a CNF
 newtype DCLabels a = DC (CNF a, Dual (CNF a))
 
+confidentialityLabel :: DCLabels a -> CNF a
+confidentialityLabel (DC (c, _)) = c
+
+integrityLabel :: DCLabels a -> Dual (CNF a)
+integrityLabel (DC (_, i)) = i
+
 instance Principal DCLabels where
   singleton a = DC (singleton a , Dual (singleton a))
 
