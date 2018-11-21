@@ -8,6 +8,7 @@ import Control.Monad
 -- | Representation of Faceted Values
 data Faceted l a = Raw a
                  | Facet l (Faceted l a) (Faceted l a)
+                 | Bot
 
 -- | Create a Faceted Value
 facet :: l -> Faceted l a -> Faceted l a -> Faceted l a

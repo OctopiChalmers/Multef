@@ -14,6 +14,8 @@ where
 import Data.IORef
 import Control.Monad
 import Control.Concurrent hiding (killThread)
+import Control.Concurrent.Chan
+import Control.Concurrent.Lock
 import System.Timeout
 
 import Lattice
@@ -23,6 +25,12 @@ import Faceted
 -- | A reference holding a faceted value
 -- with labels drawn from `l`
 newtype FIORef l a = FIORef (IORef (Faceted l a))
+
+-- | An FIO input channel from which faceted values can be read
+data FIChan l a = FIChan (IORef (Faceted l (Chan (Faceted l a)))) Lock
+
+-- | An FIO output channel on which we can write faceted values
+newtype FOChan l a = FOChan (Chan (Faceted l a))
 
 -- | An FIO computation, this is the meat of the
 -- Multef framework.
@@ -47,11 +55,19 @@ data FIO l a where
               -> (FIORef l a -> FIO l b)
               -> FIO l b
 
+  ReadFIChan  :: FIChan l a
+              -> (Faceted l a -> FIO l b)
+              -> FIO l b
+
+  WriteFOChan :: FOChan l a
+              -> Faceted l a
+              -> FIO l b
+              -> FIO l b
 
 -- | What is carried around at runtime
 data FIORuntimeObject =
-  FIORuntime { activeThreadCount :: IORef Int
-             , totalForkCount    :: IORef Int
+  FIORuntime { activeThreads  :: IORef [ThreadId]
+             , totalForkCount :: IORef Int
              }
 
 -- | What is returned when executing an FIO program
@@ -60,22 +76,31 @@ data FIOExecutionObject l a =
           , runtime :: FIORuntimeObject }
 
 -- | Fork a new thread
-forkThread :: FIORuntimeObject -> IO ()
-forkThread runtime = do
-  atomicModifyIORef' (activeThreadCount runtime) $ \x -> (x + 1, ())
+forkThread :: FIORuntimeObject -> IO () -> IO ()
+forkThread runtime comp = do
+  tid <- forkIO comp
+  atomicModifyIORef' (activeThreads runtime) $ \tids -> (tid : tids, ())
   atomicModifyIORef' (totalForkCount runtime) $ \x -> (x + 1, ())
 
--- | Kill a thread
+-- | Kill a thread, needs to be called from the thread being killed
 killThread :: FIORuntimeObject -> IO ()
 killThread runtime = do
-  atomicModifyIORef (activeThreadCount runtime) $ \x -> (x - 1, ())
+  tid <- myThreadId
+  atomicModifyIORef (activeThreads runtime) $ \tids -> (filter (tid /=) tids, ())
 
 -- | Create a new runtime object
 createRuntimeObject :: IO FIORuntimeObject
 createRuntimeObject = do
-  acttc <- newIORef 1
+  tid   <- myThreadId
+  acttc <- newIORef [tid]
   maxtc <- newIORef 1
   return $ FIORuntime acttc maxtc
+
+-- TODO: Figure out the least-bad way of doing something like this
+facGetDup :: Lattice l => PC l -> Faceted l (Chan (Faceted l a)) -> IO (Faceted l a, Faceted l (Chan (Faceted l a)))
+facGetDup pc Bot               = return (Bot, Bot)
+facGetDup pc (Raw ch)          = undefined
+facGetDup pc (Faceted l fl fr) = undefined
 
 -- | Execute an `FIO` program under FSME. The `waitTime` parameter
 --   specifies the timeout
@@ -99,6 +124,8 @@ fsme fio waitTime = do
     run runtime fio pc = case fio of
       Done a -> return (a, pc)
 
+      Control Bot cont -> run runtime (cont Bot) pc
+
       Control (Raw fioa) cont -> do
         (a, _) <- run runtime fioa pc
         run runtime (cont (Raw a)) pc
@@ -111,8 +138,7 @@ fsme fio waitTime = do
             privResultMVar <- newEmptyMVar
             privCont       <- newEmptyMVar
             -- We are spawning a new thread
-            forkThread runtime
-            forkIO $ do
+            forkThread runtime $ do
               -- Run the private computation
               (result, pc') <- run runtime (Control prv Done) (extendPositive pc l) 
               -- Communicate the result to the other thread
@@ -153,19 +179,25 @@ fsme fio waitTime = do
         ref <- FIORef <$> newIORef fac
         run runtime (cont ref) pc
 
+      -- TODO: Figure out the least bad way of implementing this
+      ReadFIChan ch cont -> undefined
+
+      WriteFOChan (FOChan ch) val cont -> do
+        writeChan ch (pcF pc val Bot)
+        run runtime cont pc
+
+
 instance Monad (FIO l) where
   return    = Done
 
   fio >>= k = case fio of
     Done a                  -> k a
-
     Control fac cont        -> Control fac    (cont >=> k)
-
     ReadFIORef ref cont     -> ReadFIORef ref (cont >=> k) 
-
     WriteFIORef ref fac fio -> WriteFIORef ref fac (fio >>= k)
-
     NewFIORef fac cont      -> NewFIORef fac (cont >=> k)
+    ReadFIChan fac cont     -> ReadFIChan fac (cont >=> k)
+    WriteFOChan fac val fio -> WriteFOChan fac val (fio >>= k)
 
 instance Applicative (FIO l) where
   pure  = return

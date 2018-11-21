@@ -13,12 +13,13 @@ import FIOInternals
 instance (Show a, Show l) => Show (Faceted l a) where
   show (Raw v) = show v
   show (Facet l fl fr) = "< " ++ show l ++ " ? " ++ show fl ++ " : " ++ show fr ++ " >"
+  show Bot = "⊥"
 
 printRuntime :: FIORuntimeObject -> IO ()
 printRuntime obj = do
-  act <- readIORef (activeThreadCount obj)
+  act <- readIORef (activeThreads obj)
   max <- readIORef (totalForkCount obj)
-  putStrLn $ "Active #Threads: " ++ show act
+  putStrLn $ "Active #Threads: " ++ show (length act)
   putStrLn $ "Total #Threads: " ++ show max
 
 printResult :: (Show l, Show a) => FIOExecutionObject l a -> IO ()
@@ -35,3 +36,4 @@ printResult obj = do
           Just fr -> Just (Facet l fl fr)
           Nothing -> Just fl
         Nothing -> unMaybeFaceted fr
+    unMaybeFaceted Bot = Nothing
