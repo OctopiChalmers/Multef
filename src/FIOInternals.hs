@@ -35,8 +35,9 @@ newtype FIORef l a = FIORef (IORef (Faceted l a))
 -- | An FIO input channel from which faceted values can be read
 data FIChan l a = FIChan (IORef (Faceted l (Chan (Faceted l a)))) Lock
 
--- | An FIO output channel on which we can write an unfaceted value
-data FOChan l a = FOChan l (Chan a)
+-- | An FIO output channel on which we can write an unfaceted value.
+-- The receiver is also informed of the PC that wrote the value
+data FOChan l a = FOChan l (Chan (PC l, a))
 
 -- | An FIO computation, this is the meat of the
 -- Multef framework.
@@ -215,7 +216,7 @@ fsme fio waitTime = do
 
       WriteFOChan (FOChan l ch) a cont -> do
         when (l `inViews` pc) $ do
-          writeChan ch a
+          writeChan ch (pc, a)
         run runtime cont pc
 
 instance Monad (FIO l) where
