@@ -19,6 +19,7 @@ instance Monad (Faceted l) where
 
   Raw a         >>= k = k a
   Facet l fl fr >>= k = Facet l (fl >>= k) (fr >>= k)
+  Bot           >>= k = Bot
 
 instance Applicative (Faceted l) where
   pure  = return
