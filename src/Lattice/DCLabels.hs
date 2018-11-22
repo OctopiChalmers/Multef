@@ -4,7 +4,7 @@ import Lattice.Class
 import Lattice.CNF
 
 -- | A DC-label is a CNF and a dual of a CNF
-newtype DCLabels a = DC (CNF a, Dual (CNF a)) deriving Eq
+newtype DCLabels a = DC (CNF a, Dual (CNF a)) deriving (Eq, Show)
 
 confidentialityLabel :: DCLabels a -> CNF a
 confidentialityLabel (DC (c, _)) = c

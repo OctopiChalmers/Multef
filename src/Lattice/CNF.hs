@@ -6,7 +6,7 @@ import Lattice.Class
 
 -- | Formulas of principals in conjunctive normal form.
 -- This is the basis of a DC-label
-data CNF a = CNF (S.Set (S.Set a)) deriving Eq
+data CNF a = CNF (S.Set (S.Set a)) deriving (Eq, Show)
 
 instance Ord a => Lattice (CNF a) where
   CNF l0 `lub` CNF l1 = CNF (l0 `S.union` l1)

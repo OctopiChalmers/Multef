@@ -26,7 +26,7 @@ instance (Lattice l, Lattice l') => Lattice (l, l') where
   (l0, l0') `canFlowTo` (l1, l1') = l0 `canFlowTo` l1 && l0' `canFlowTo` l1'
 
 -- | Constructs the dual of a lattice
-newtype Dual l = Dual l deriving Eq
+newtype Dual l = Dual l deriving (Eq, Show)
 
 instance Lattice l => Lattice (Dual l) where
   (Dual l0) `lub` (Dual l1) = Dual (l0 `glb` l1)
