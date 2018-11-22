@@ -13,6 +13,7 @@ module FIOInternals
   , newFIORef
   , readFIChan
   , writeFOChan
+  , debug
   )
 where
 
@@ -68,6 +69,11 @@ data FIO l a where
 
   WriteFOChan :: FOChan l a
               -> a
+              -> FIO l b
+              -> FIO l b
+
+  Debug       :: Show l
+              => String
               -> FIO l b
               -> FIO l b
 
@@ -219,6 +225,10 @@ fsme fio waitTime = do
           writeChan ch (pc, a)
         run runtime cont pc
 
+      Debug s cont -> do
+        putStrLn $ "DEBUG[" ++ show pc ++ "]: " ++ show s
+        run runtime cont pc
+
 instance Monad (FIO l) where
   return    = Done
 
@@ -230,6 +240,7 @@ instance Monad (FIO l) where
     NewFIORef fac cont      -> NewFIORef fac (cont >=> k)
     ReadFIChan fac cont     -> ReadFIChan fac (cont >=> k)
     WriteFOChan fac a fio   -> WriteFOChan fac a (fio >>= k)
+    Debug s fio             -> Debug s (fio >>= k)
 
 instance Applicative (FIO l) where
   pure  = return
@@ -261,3 +272,7 @@ readFIChan fch = ReadFIChan fch Done
 -- | Write to an output channel
 writeFOChan :: FOChan l a -> a -> FIO l ()
 writeFOChan fch a = WriteFOChan fch a (Done ())
+
+-- | Write to the debug log
+debug :: Show l => String -> FIO l ()
+debug s = Debug s (Done ())

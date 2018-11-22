@@ -11,6 +11,7 @@ module FIO
   , newFIORef
   , readFIChan
   , writeFOChan
+  , debug
   , Faceted
   , facet )
 where

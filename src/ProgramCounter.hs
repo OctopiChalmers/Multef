@@ -20,6 +20,9 @@ data Branch l = Positive l
 
 newtype PC l = PC { branches :: [Branch l] }
 
+instance Show l => Show (PC l) where
+  show (PC bs) = show bs
+
 -- | The empty PC
 emptyPC :: PC l
 emptyPC = PC []
