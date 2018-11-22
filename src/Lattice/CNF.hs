@@ -16,7 +16,7 @@ instance Ord a => Lattice (CNF a) where
   top = CNF (S.singleton S.empty)
   bot = CNF S.empty
 
-  CNF l0 `canFlowTo` CNF l1 = all (\c -> any (\c' -> c' `S.isSubsetOf` c) (S.toList l1)) (S.toList l1)
+  CNF l0 `canFlowTo` CNF l1 = all (\c -> any (\c' -> c' `S.isSubsetOf` c) (S.toList l1)) (S.toList l0)
 
 instance Principal CNF where
   singleton a = CNF (S.singleton (S.singleton a))
