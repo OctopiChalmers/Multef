@@ -131,8 +131,8 @@ facGetDup pc (Raw ch)     = do
 facGetDup (PC pc) (Facet l fl fr) = do
   (v0, p0) <- facGetDup (PC $ pc \\ [Positive l, Negative l]) fl
   (v1, p1) <- facGetDup (PC $ pc \\ [Positive l, Negative l]) fr
-  let p0' = if Positive l `elem` pc then p0 else fl
-  let p1' = if Negative l `elem` pc then p1 else fr
+  let p0' = if Positive l `elem` pc then fl else p0
+  let p1' = if Negative l `elem` pc then fr else p1
   return (facet l v0 v1, facet l p0' p1')
 
 -- | Execute an `FIO` program under FSME. The `waitTime` parameter
