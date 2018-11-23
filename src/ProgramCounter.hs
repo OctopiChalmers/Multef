@@ -54,7 +54,7 @@ inViews l pc =  all (`canFlowTo` l) (positives pc)
 
 -- | Check if the view associated to a PC is empty
 emptyView :: Lattice l => PC l -> Bool
-emptyView pc = candidate pc `inViews` pc
+emptyView pc = not $ candidate pc `inViews` pc
 
 -- | Create a faceted value which behaves as `priv` to an observer
 -- in the view of the PC and as `pub` to others.
