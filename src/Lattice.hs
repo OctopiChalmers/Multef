@@ -4,6 +4,7 @@ module Lattice
   , module Lattice.HighLow
   , module Lattice.CNF
   , module Lattice.DCLabels
+  , module Lattice.Disjunctive
   )
 where
 
@@ -12,3 +13,4 @@ import Lattice.Powerset
 import Lattice.HighLow
 import Lattice.CNF
 import Lattice.DCLabels
+import Lattice.Disjunctive

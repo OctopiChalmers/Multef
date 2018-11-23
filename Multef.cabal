@@ -33,7 +33,8 @@ library
     Lattice.HighLow,
     Lattice.Powerset,
     Lattice.CNF,
-    Lattice.DCLabels
+    Lattice.DCLabels,
+    Lattice.Disjunctive
   other-modules:
     ProgramCounter,
     Faceted,
