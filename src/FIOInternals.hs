@@ -164,8 +164,8 @@ fsme fio waitTime = do
         run runtime (cont (Raw a)) pc
 
       Control (Facet l prv pub) cont
-        | emptyView (extendPositive pc l) -> run runtime (Control pub cont) (extendNegative pc l)
-        | emptyView (extendNegative pc l) -> run runtime (Control prv cont) (extendPositive pc l)
+        | emptyView (extendPositive pc l) -> run runtime (Control pub cont) pc
+        | emptyView (extendNegative pc l) -> run runtime (Control prv cont) pc
         | otherwise -> do
             -- For communication between the two threads
             privResultMVar <- newEmptyMVar
