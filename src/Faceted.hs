@@ -1,6 +1,7 @@
 module Faceted
   ( Faceted(..)
   , facet
+  , bottom
   )
 where
 import Control.Monad
@@ -13,6 +14,9 @@ data Faceted l a = Raw a
 -- | Create a Faceted Value
 facet :: l -> Faceted l a -> Faceted l a -> Faceted l a
 facet = Facet
+
+bottom :: Faceted l a
+bottom = Bot
 
 instance Monad (Faceted l) where
   return = Raw

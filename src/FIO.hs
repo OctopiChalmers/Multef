@@ -13,7 +13,8 @@ module FIO
   , writeFOChan
   , debug
   , Faceted
-  , facet )
+  , facet
+  , bottom )
 where
 
 import FIOInternals
